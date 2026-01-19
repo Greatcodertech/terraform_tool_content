@@ -1,0 +1,110 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+}
+
+# =========================
+# AWS Provider (Mumbai)
+# =========================
+provider "aws" {
+  region = "ap-south-1"
+}
+
+# =========================
+# Azure Provider
+# =========================
+provider "azurerm" {
+  features {}
+}
+
+# =================================================
+# AWS EC2 Instance (Uses Default VPC)
+# =================================================
+resource "aws_instance" "aws_ec2" {
+  ami           = "ami-0f5ee92e2d63afc18"   # Amazon Linux 2 - Mumbai
+  instance_type = "t2.micro"
+  key_name      = "my-key"                
+
+  tags = {
+    Name = "AWS-EC2-Demo"
+  }
+}
+
+# =================================================
+# Azure Minimum Infra (Required for VM)
+# =================================================
+
+# Resource Group
+resource "azurerm_resource_group" "rg" {
+  name     = "rg-demo"
+  location = "East US"
+}
+
+# Virtual Network (minimal, required by Azure)
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet-demo"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+# Subnet (minimal, required by Azure)
+resource "azurerm_subnet" "subnet" {
+  name                 = "subnet-demo"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+# Network Interface (required by Azure VM)
+resource "azurerm_network_interface" "nic" {
+  name                = "nic-demo"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+# =================================================
+# Azure VM (Compute)
+# =================================================
+resource "azurerm_linux_virtual_machine" "azure_vm" {
+  name                = "azure-vm-demo"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  size                = "Standard_B1s"
+
+  admin_username = "azureuser"
+  admin_password = "Password@1234"   
+
+  network_interface_ids = [
+    azurerm_network_interface.nic.id
+  ]
+
+  disable_password_authentication = false
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
+  }
+}
