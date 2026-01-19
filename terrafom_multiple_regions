@@ -1,0 +1,21 @@
+provider "aws" {
+  alias  = "mumbai"
+  region = "ap-south-1"
+}
+
+provider "aws" {
+  alias  = "singapore"
+  region = "ap-southeast-1"
+}
+
+resource "aws_instance" "ec2_mumbai" {
+  provider      = aws.mumbai
+  ami           = "ami-0f5ee92e2d63afc18"
+  instance_type = "t2.micro"
+}
+
+resource "aws_instance" "ec2_singapore" {
+  provider      = aws.singapore
+  ami           = "ami-0c02fb55956c7d316"
+  instance_type = "t2.micro"
+}
