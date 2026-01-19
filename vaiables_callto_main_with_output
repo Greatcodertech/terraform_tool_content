@@ -1,0 +1,42 @@
+# =========================
+# Provider Configuration
+# =========================
+provider "aws" {
+  region = var.aws_region
+}
+
+# =========================
+# EC2 Instance Resource
+# =========================
+resource "aws_instance" "demo_ec2" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  key_name      = var.key_name
+
+  tags = {
+    Name = "EC2-Using-Variables"
+    Env  = "Dev"
+  }
+}
+
+# =========================
+# Output Variables
+# =========================
+
+# Public IP
+output "ec2_public_ip" {
+  description = "Public IP address of the EC2 instance"
+  value       = aws_instance.demo_ec2.public_ip
+}
+
+# Private IP
+output "ec2_private_ip" {
+  description = "Private IP address of the EC2 instance"
+  value       = aws_instance.demo_ec2.private_ip
+}
+
+# Instance ID
+output "ec2_instance_id" {
+  description = "AWS Instance ID"
+  value       = aws_instance.demo_ec2.id
+}
